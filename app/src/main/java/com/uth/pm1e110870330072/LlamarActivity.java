@@ -10,6 +10,8 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.os.Handler;
+import android.os.Looper;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -38,6 +40,18 @@ public class LlamarActivity extends AppCompatActivity {
         inicializarVistas();
         cargarContacto();
         configurarEventos();
+
+        boolean llamarAutomatico = getIntent().getBooleanExtra("llamarAutomatico", false);
+
+        if (llamarAutomatico && contacto != null) {
+            new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    String telefonoCompleto = obtenerTelefonoConCodigo(contacto);
+                    verificarPermisoLlamada(telefonoCompleto);
+                }
+            }, 600);
+        }
     }
 
     private void inicializarVistas() {
