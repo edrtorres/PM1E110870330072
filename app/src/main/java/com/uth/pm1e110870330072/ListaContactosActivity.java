@@ -7,9 +7,9 @@ import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.View;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
-import android.widget.ImageView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -38,6 +38,7 @@ public class ListaContactosActivity extends AppCompatActivity {
     private ArrayList<Contacto> listaFiltrada;
 
     private Contacto contactoSeleccionado = null;
+    private int posicionSeleccionadaActual = -1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -82,8 +83,15 @@ public class ListaContactosActivity extends AppCompatActivity {
         });
 
         listViewContactos.setOnItemClickListener((parent, view, position, id) -> {
-            contactoSeleccionado = listaFiltrada.get(position);
-            contactoAdapter.setPosicionSeleccionada(position);
+            Contacto contactoActual = listaFiltrada.get(position);
+
+            if (contactoSeleccionado != null && contactoSeleccionado.getId() == contactoActual.getId()) {
+                confirmarAbrirLlamada(contactoActual);
+            } else {
+                contactoSeleccionado = contactoActual;
+                posicionSeleccionadaActual = position;
+                contactoAdapter.setPosicionSeleccionada(position);
+            }
         });
 
         txtBuscarContacto.addTextChangedListener(new TextWatcher() {
@@ -138,6 +146,8 @@ public class ListaContactosActivity extends AppCompatActivity {
         listViewContactos.setAdapter(contactoAdapter);
 
         contactoSeleccionado = null;
+        posicionSeleccionadaActual = -1;
+
         actualizarContador();
     }
 
@@ -161,8 +171,11 @@ public class ListaContactosActivity extends AppCompatActivity {
         }
 
         contactoSeleccionado = null;
+        posicionSeleccionadaActual = -1;
+
         contactoAdapter.setPosicionSeleccionada(-1);
         contactoAdapter.actualizarLista(listaFiltrada);
+
         actualizarContador();
     }
 
@@ -223,6 +236,21 @@ public class ListaContactosActivity extends AppCompatActivity {
         intent.putExtra("modo", "editar");
         intent.putExtra("idContacto", contactoSeleccionado.getId());
         startActivity(intent);
+    }
+
+    private void confirmarAbrirLlamada(Contacto contacto) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Llamar contacto");
+        builder.setMessage("¿Desea abrir la pantalla de llamada para " + contacto.getNombre() + "?");
+
+        builder.setPositiveButton("Sí", (dialog, which) -> {
+            Intent intent = new Intent(ListaContactosActivity.this, LlamarActivity.class);
+            intent.putExtra("idContacto", contacto.getId());
+            startActivity(intent);
+        });
+
+        builder.setNegativeButton("No", null);
+        builder.show();
     }
 
     private void confirmarEliminarContacto() {

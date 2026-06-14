@@ -37,9 +37,15 @@ public class MainActivity extends AppCompatActivity {
     private EditText txtNombre, txtTelefono, txtNota;
     private ImageView imgContacto;
     private TextView btnSeleccionarImagen, btnGuardar, btnVerLista;
+    private TextView txtTituloMain, txtSubtituloMain;
 
     private ContactoDAO contactoDAO;
     private Bitmap imagenBitmap = null;
+
+    private boolean modoEditar = false;
+    private int idContactoEditar = -1;
+    private Contacto contactoEditar = null;
+    private String imagenActualBase64 = "";
 
     private static final int REQUEST_GALERIA = 100;
     private static final int REQUEST_CAMARA = 101;
@@ -53,10 +59,14 @@ public class MainActivity extends AppCompatActivity {
         inicializarVistas();
         cargarPaises();
         configurarFiltrosRegex();
+        detectarModoEditar();
         configurarEventos();
     }
 
     private void inicializarVistas() {
+        txtTituloMain = findViewById(R.id.txtTituloMain);
+        txtSubtituloMain = findViewById(R.id.txtSubtituloMain);
+
         spPais = findViewById(R.id.spPais);
         txtNombre = findViewById(R.id.txtNombre);
         txtTelefono = findViewById(R.id.txtTelefono);
@@ -93,6 +103,63 @@ public class MainActivity extends AppCompatActivity {
         spPais.setAdapter(adapter);
     }
 
+    private void detectarModoEditar() {
+        String modo = getIntent().getStringExtra("modo");
+        idContactoEditar = getIntent().getIntExtra("idContacto", -1);
+
+        if (modo != null && modo.equals("editar") && idContactoEditar != -1) {
+            modoEditar = true;
+            cargarContactoParaEditar();
+        } else {
+            modoEditar = false;
+        }
+    }
+
+    private void cargarContactoParaEditar() {
+        contactoEditar = contactoDAO.obtenerContactoPorId(idContactoEditar);
+
+        if (contactoEditar == null) {
+            mostrarAlerta("Error", "No se encontró el contacto a actualizar.");
+            return;
+        }
+
+        txtTituloMain.setText("Actualizar Contacto");
+        txtSubtituloMain.setText("Modifica la información del contacto");
+        btnGuardar.setText("Actualizar Contacto");
+
+        seleccionarPais(contactoEditar.getPais());
+        txtNombre.setText(contactoEditar.getNombre());
+        txtTelefono.setText(contactoEditar.getTelefono());
+        txtNota.setText(contactoEditar.getNota());
+
+        imagenActualBase64 = contactoEditar.getImagen();
+
+        Bitmap bitmap = ImagenUtils.base64ToBitmap(imagenActualBase64);
+
+        if (bitmap != null) {
+            imagenBitmap = bitmap;
+            imgContacto.setImageBitmap(bitmap);
+            imgContacto.setPadding(0, 0, 0, 0);
+        } else {
+            imagenBitmap = null;
+            imgContacto.setImageResource(android.R.drawable.ic_menu_camera);
+            imgContacto.setPadding(22, 22, 22, 22);
+        }
+    }
+
+    private void seleccionarPais(String paisGuardado) {
+        for (int i = 0; i < spPais.getCount(); i++) {
+            String paisSpinner = spPais.getItemAtPosition(i).toString();
+
+            if (paisSpinner.equals(paisGuardado)) {
+                spPais.setSelection(i);
+                return;
+            }
+        }
+
+        spPais.setSelection(0);
+    }
+
     private void configurarFiltrosRegex() {
 
         InputFilter filtroLetras = new InputFilter() {
@@ -127,7 +194,6 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void afterTextChanged(Editable editable) {
-
                 if (editando) {
                     return;
                 }
@@ -157,7 +223,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void configurarEventos() {
-
         btnSeleccionarImagen.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -168,7 +233,11 @@ public class MainActivity extends AppCompatActivity {
         btnGuardar.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                guardarContacto();
+                if (modoEditar) {
+                    actualizarContacto();
+                } else {
+                    guardarContacto();
+                }
             }
         });
 
@@ -302,8 +371,43 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private boolean validarCampos(String nombre, String telefono, String nota) {
+    private void actualizarContacto() {
+        String pais = spPais.getSelectedItem().toString();
+        String nombre = txtNombre.getText().toString().trim();
+        String telefono = txtTelefono.getText().toString().trim();
+        String nota = txtNota.getText().toString().trim();
 
+        if (!validarCampos(nombre, telefono, nota)) {
+            return;
+        }
+
+        String imagenBase64;
+
+        if (imagenBitmap != null) {
+            imagenBase64 = ImagenUtils.bitmapToBase64(imagenBitmap);
+        } else {
+            imagenBase64 = imagenActualBase64;
+        }
+
+        Contacto contacto = new Contacto(
+                idContactoEditar,
+                pais,
+                nombre,
+                telefono,
+                nota,
+                imagenBase64
+        );
+
+        int resultado = contactoDAO.actualizarContacto(contacto);
+
+        if (resultado > 0) {
+            mostrarAlertaConFinalizar("Actualizado", "El contacto fue actualizado correctamente.");
+        } else {
+            mostrarAlerta("Error", "No se pudo actualizar el contacto.");
+        }
+    }
+
+    private boolean validarCampos(String nombre, String telefono, String nota) {
         if (spPais.getSelectedItemPosition() == 0) {
             mostrarAlerta("Campo obligatorio", "Debe seleccionar un país.");
             spPais.requestFocus();
@@ -340,7 +444,7 @@ public class MainActivity extends AppCompatActivity {
             return false;
         }
 
-        if (imagenBitmap == null) {
+        if (imagenBitmap == null && (imagenActualBase64 == null || imagenActualBase64.trim().isEmpty())) {
             mostrarAlerta("Imagen obligatoria", "Debe seleccionar o tomar una imagen para el contacto.");
             return false;
         }
@@ -355,8 +459,10 @@ public class MainActivity extends AppCompatActivity {
         txtNota.setText("");
 
         imagenBitmap = null;
+        imagenActualBase64 = "";
+
         imgContacto.setImageResource(android.R.drawable.ic_menu_camera);
-        imgContacto.setPadding(28, 28, 28, 28);
+        imgContacto.setPadding(22, 22, 22, 22);
 
         spPais.requestFocus();
     }
@@ -366,6 +472,14 @@ public class MainActivity extends AppCompatActivity {
         builder.setTitle(titulo);
         builder.setMessage(mensaje);
         builder.setPositiveButton("Aceptar", null);
+        builder.show();
+    }
+
+    private void mostrarAlertaConFinalizar(String titulo, String mensaje) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(titulo);
+        builder.setMessage(mensaje);
+        builder.setPositiveButton("Aceptar", (dialog, which) -> finish());
         builder.show();
     }
 }

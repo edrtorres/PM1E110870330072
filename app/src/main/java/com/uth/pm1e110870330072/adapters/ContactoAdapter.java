@@ -74,9 +74,13 @@ public class ContactoAdapter extends BaseAdapter {
         }
 
         if (position == posicionSeleccionada) {
-            itemContacto.setAlpha(0.65f);
-        } else {
+            itemContacto.setBackgroundResource(R.drawable.bg_contact_item_selected);
             itemContacto.setAlpha(1.0f);
+            txtItemNombre.setTextColor(context.getResources().getColor(R.color.primary_blue));
+        } else {
+            itemContacto.setBackgroundResource(R.drawable.bg_contact_item);
+            itemContacto.setAlpha(1.0f);
+            txtItemNombre.setTextColor(context.getResources().getColor(R.color.text_primary));
         }
 
         return vista;
@@ -103,4 +107,4 @@ public class ContactoAdapter extends BaseAdapter {
 
         return null;
     }
-}
+}s
