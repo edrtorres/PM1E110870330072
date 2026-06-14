@@ -256,18 +256,9 @@ public class ListaContactosActivity extends AppCompatActivity {
     }
 
     private void abrirPantallaLlamar(Contacto contacto) {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Llamar contacto");
-        builder.setMessage("¿Desea llamar a " + contacto.getNombre() + "?");
-
-        builder.setPositiveButton("Sí", (dialog, which) -> {
-            Intent intent = new Intent(ListaContactosActivity.this, LlamarActivity.class);
-            intent.putExtra("idContacto", contacto.getId());
-            startActivity(intent);
-        });
-
-        builder.setNegativeButton("No", null);
-        builder.show();
+        Intent intent = new Intent(ListaContactosActivity.this, LlamarActivity.class);
+        intent.putExtra("idContacto", contacto.getId());
+        startActivity(intent);
     }
     private void confirmarEliminarContacto() {
         if (!validarSeleccion()) {
