@@ -18,13 +18,20 @@ import java.util.ArrayList;
 
 public class ContactoAdapter extends BaseAdapter {
 
+    public interface OnContactoClickListener {
+        void onSeleccionarClick(Contacto contacto, int position);
+        void onLlamarClick(Contacto contacto, int position);
+    }
+
     private Context context;
     private ArrayList<Contacto> listaContactos;
     private int posicionSeleccionada = -1;
+    private OnContactoClickListener listener;
 
-    public ContactoAdapter(Context context, ArrayList<Contacto> listaContactos) {
+    public ContactoAdapter(Context context, ArrayList<Contacto> listaContactos, OnContactoClickListener listener) {
         this.context = context;
         this.listaContactos = listaContactos;
+        this.listener = listener;
     }
 
     @Override
@@ -53,6 +60,8 @@ public class ContactoAdapter extends BaseAdapter {
 
         LinearLayout itemContacto = vista.findViewById(R.id.itemContacto);
         ImageView imgItemContacto = vista.findViewById(R.id.imgItemContacto);
+        ImageView btnItemLlamar = vista.findViewById(R.id.btnItemLlamar);
+
         TextView txtItemNombre = vista.findViewById(R.id.txtItemNombre);
         TextView txtItemTelefono = vista.findViewById(R.id.txtItemTelefono);
         TextView txtItemPais = vista.findViewById(R.id.txtItemPais);
@@ -75,13 +84,35 @@ public class ContactoAdapter extends BaseAdapter {
 
         if (position == posicionSeleccionada) {
             itemContacto.setBackgroundResource(R.drawable.bg_contact_item_selected);
-            itemContacto.setAlpha(1.0f);
             txtItemNombre.setTextColor(context.getResources().getColor(R.color.primary_blue));
         } else {
             itemContacto.setBackgroundResource(R.drawable.bg_contact_item);
-            itemContacto.setAlpha(1.0f);
             txtItemNombre.setTextColor(context.getResources().getColor(R.color.text_primary));
         }
+
+        itemContacto.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                posicionSeleccionada = position;
+                notifyDataSetChanged();
+
+                if (listener != null) {
+                    listener.onSeleccionarClick(contacto, position);
+                }
+            }
+        });
+
+        btnItemLlamar.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                posicionSeleccionada = position;
+                notifyDataSetChanged();
+
+                if (listener != null) {
+                    listener.onLlamarClick(contacto, position);
+                }
+            }
+        });
 
         return vista;
     }
@@ -107,4 +138,4 @@ public class ContactoAdapter extends BaseAdapter {
 
         return null;
     }
-}s
+}

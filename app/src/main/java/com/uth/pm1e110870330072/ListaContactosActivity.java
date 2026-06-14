@@ -82,18 +82,6 @@ public class ListaContactosActivity extends AppCompatActivity {
             }
         });
 
-        listViewContactos.setOnItemClickListener((parent, view, position, id) -> {
-            Contacto contactoActual = listaFiltrada.get(position);
-
-            if (contactoSeleccionado != null && contactoSeleccionado.getId() == contactoActual.getId()) {
-                confirmarAbrirLlamada(contactoActual);
-            } else {
-                contactoSeleccionado = contactoActual;
-                posicionSeleccionadaActual = position;
-                contactoAdapter.setPosicionSeleccionada(position);
-            }
-        });
-
         txtBuscarContacto.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence texto, int start, int count, int after) {
@@ -142,7 +130,21 @@ public class ListaContactosActivity extends AppCompatActivity {
         listaContactos = contactoDAO.obtenerContactos();
         listaFiltrada = new ArrayList<>(listaContactos);
 
-        contactoAdapter = new ContactoAdapter(this, listaFiltrada);
+        contactoAdapter = new ContactoAdapter(this, listaFiltrada, new ContactoAdapter.OnContactoClickListener() {
+            @Override
+            public void onSeleccionarClick(Contacto contacto, int position) {
+                contactoSeleccionado = contacto;
+                posicionSeleccionadaActual = position;
+            }
+
+            @Override
+            public void onLlamarClick(Contacto contacto, int position) {
+                contactoSeleccionado = contacto;
+                posicionSeleccionadaActual = position;
+                abrirPantallaLlamar(contacto);
+            }
+        });
+
         listViewContactos.setAdapter(contactoAdapter);
 
         contactoSeleccionado = null;
@@ -253,6 +255,20 @@ public class ListaContactosActivity extends AppCompatActivity {
         builder.show();
     }
 
+    private void abrirPantallaLlamar(Contacto contacto) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Llamar contacto");
+        builder.setMessage("¿Desea llamar a " + contacto.getNombre() + "?");
+
+        builder.setPositiveButton("Sí", (dialog, which) -> {
+            Intent intent = new Intent(ListaContactosActivity.this, LlamarActivity.class);
+            intent.putExtra("idContacto", contacto.getId());
+            startActivity(intent);
+        });
+
+        builder.setNegativeButton("No", null);
+        builder.show();
+    }
     private void confirmarEliminarContacto() {
         if (!validarSeleccion()) {
             return;
